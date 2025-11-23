@@ -22,26 +22,43 @@ public class StatementPrinter {
      * @throws RuntimeException if one of the play types is not known
      */
     public String statement() {
-        int totalAmount = 0;
-        int volumeCredits = 0;
+
         final StringBuilder result = new StringBuilder("Statement for " + getInvoice().getCustomer()
                 + System.lineSeparator());
-
-        final NumberFormat format = NumberFormat.getCurrencyInstance(Locale.US);
-
-        for (Performance p : getInvoice().getPerformances()) {
-
-            // add volume credits
-            volumeCredits += getVolumeCredits(p);
-
+        // Loop 1 build the result string
+        for (Performance performance : getInvoice().getPerformances()) {
             // print line for this order
-            result.append(String.format("  %s: %s (%s seats)%n", getPlay(p).getName(), format.format(getAmount(p)
-                    / Constants.PERCENT_FACTOR), p.getAudience()));
-            totalAmount += getAmount(p);
+            result.append(String.format("  %s: %s (%s seats)%n", getPlay(performance).getName(),
+                    usd(getAmount(performance)),
+                    performance.getAudience()));
         }
-        result.append(String.format("Amount owed is %s%n", format.format(totalAmount / Constants.PERCENT_FACTOR)));
-        result.append(String.format("You earned %s credits%n", volumeCredits));
+        result.append(String.format("Amount owed is %s%n", usd(getTotalAmount())));
+        result.append(String.format("You earned %s credits%n", getVolumeCredits()));
         return result.toString();
+    }
+
+    private int getTotalAmount() {
+        int result = 0;
+        // Loop 2 calculate total amount
+        for (Performance performance : getInvoice().getPerformances()) {
+            result += getAmount(performance);
+
+        }
+        return result;
+    }
+
+    private int getVolumeCredits() {
+        // Loop 3 calculate volume credits
+        int result = 0;
+        for (Performance performance : getInvoice().getPerformances()) {
+            // add volume credits
+            result += getVolumeCredits(performance);
+        }
+        return result;
+    }
+
+    private static String usd(int totalAmount) {
+        return NumberFormat.getCurrencyInstance(Locale.US).format(totalAmount / Constants.PERCENT_FACTOR);
     }
 
     private int getVolumeCredits(Performance performance) {
@@ -54,8 +71,8 @@ public class StatementPrinter {
         return result;
     }
 
-    private Play getPlay(Performance p) {
-        return getPlays().get(p.getPlayID());
+    private Play getPlay(Performance performance) {
+        return getPlays().get(performance.getPlayID());
     }
 
     private int getAmount(Performance performance) {
